@@ -256,18 +256,55 @@ void LaosMenu::Handle() {
                 mot->getPosition(&x, &y, &z);
                 xt = x; yt= y;
                 switch ( c ) {
-                    case K_DOWN: y+=100*speed; break;
-                    case K_UP: y-=100*speed;  break;
-                    case K_LEFT: x-=100*speed; break;
-                    case K_RIGHT: x+=100*speed;  break;
+                    case K_DOWN: 
+                        // swap movement if y.home == y.max
+                        if( cfg->yhome == cfg->ymax )
+                            y-=100*speed;
+                         else   
+                            y+=100*speed; 
+                        break;
+                    case K_UP:
+                        // swap movement if y.home == y.max
+                        if( cfg->yhome == cfg->ymax )
+                            y+=100*speed;     
+                        else    
+                            y-=100*speed;  
+                        break;
+                    case K_LEFT:
+                        // swap movement if x.home == x.max
+                        if( cfg->xhome == cfg->xmax )
+                            x+=100*speed; 
+                        else
+                            x-=100*speed;
+                        break;
+                    case K_RIGHT:
+                        // swap movement if x.home == x.max
+                        if( cfg->xhome == cfg->xmax )
+                            x-=100*speed; 
+                        else
+                            x+=100*speed;
+                        break;
                     case K_OK: case K_CANCEL: screen=MAIN; waitup=1; break;
                     case K_FUP: screen=FOCUS; break; 
                     case K_FDOWN: screen=FOCUS; break;
                     case K_ORIGIN: screen=ORIGIN; break;
                 }
+
+
+                // limits
+                if( x >= cfg->xmax )
+                    x = cfg->xmax;
+                if( x <= 0 )
+                    x = 0;
+
+                if( y >= cfg->ymax )
+                    y = cfg->ymax;
+                if( y <= 0 )
+                    y = 0;
+
                 if  ((mot->queue() < 5) && ( (x!=xt) || (y != yt) )) {
                     mot->moveTo(x, y, z, speed/2);
-					printf("Move: %d %d %d %d\n", x,y,z, speed);
+                    printf("Move: %d %d %d %d\n", x,y,z, speed);
                 } else {
                     // if (! mot->ready()) 
                     // printf("Buffer vol\n");
@@ -278,7 +315,7 @@ void LaosMenu::Handle() {
 
             case FOCUS: // focus
                 mot->getPosition(&x, &y, &z);
-		zt = z;
+        zt = z;
                 switch ( c ) {
                     case K_FUP: z+=cfg->zspeed*speed; if (z>cfg->zmax) z=cfg->zmax; break;
                     case K_FDOWN: z-=cfg->zspeed*speed; if (z<0) z=0; break;
@@ -292,10 +329,10 @@ void LaosMenu::Handle() {
                     default: screen=MAIN; waitup=1; break;
                 }
                 if ( mot->ready() && (z!=zt) ) 
-				{
+                {
                   mot->moveTo(x, y, z, speed);
-				  printf("Move: %d %d %d %d\n", x,y,z, speed);
-				}
+                  printf("Move: %d %d %d %d\n", x,y,z, speed);
+                }
                 args[0]=z-zoff;
                 break;
 
@@ -408,14 +445,14 @@ void LaosMenu::Handle() {
                             else
                                mot->reset();
                         } else {
-                        		#ifdef READ_FILE_DEBUG
-                        			printf("Parsing file: \n");
-                        		#endif
+                                #ifdef READ_FILE_DEBUG
+                                    printf("Parsing file: \n");
+                                #endif
                             while ((!feof(runfile)) && mot->ready())
                                 mot->write(readint(runfile));
                             #ifdef READ_FILE_DEBUG
-                        			printf("File parsed \n");
-                        		#endif
+                                    printf("File parsed \n");
+                                #endif
                             if (feof(runfile) && mot->ready()) {
                                 fclose(runfile);
                                 runfile = NULL;
