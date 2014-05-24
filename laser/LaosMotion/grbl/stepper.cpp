@@ -61,6 +61,7 @@ volatile int32_t actpos_x, actpos_y, actpos_z, actpos_e; // actual position
 // Locals
 static block_t *current_block;  // A pointer to the block currently being traced
 static Ticker timer; // the periodic timer used to step
+static Timeout exhaust_timer; // air assist/exhaust turn off delay
 static tFixedPt pwmofs; // the offset of the PWM value
 static tFixedPt pwmscale; // the scaling of the PWM value
 static volatile int running = 0;  // stepper irq is running
@@ -69,7 +70,6 @@ static uint32_t direction_inv;    // invert mask for direction bits
 static uint32_t direction_bits;   // all axes direction (different ports)
 static uint32_t step_bits;        // all axis step bits
 static uint32_t step_inv;      // invert mask for the stepper bits
-static uint32_t nominal_rate; // [steps/min]
 static int32_t counter_x,       // Counter variables for the bresenham line tracer
                counter_y,
                counter_z;
@@ -114,6 +114,7 @@ extern unsigned long bitmap[], bitmap_width, bitmap_size;
 // Initialize and start the stepper motor subsystem
 void st_init(void)
 {
+  extern GlobalConfig *cfg;
   direction_inv =
    (cfg->xscale<0 ? (1<<X_DIRECTION_BIT) : 0) |
    (cfg->yscale<0 ? (1<<Y_DIRECTION_BIT) : 0) |
@@ -125,13 +126,13 @@ void st_init(void)
    (cfg->zinv ? (1<<Z_STEP_BIT) : 0) |
    (cfg->einv ? (1<<E_STEP_BIT) : 0);
  
-  printf("Direction: %d\n", direction_inv);
+  printf("Direction: %lu\n", direction_inv);
   pwmofs = to_fixed(cfg->pwmmin) / 100; // offset (0 .. 1.0)
   if ( cfg->pwmmin == cfg->pwmmax )
     pwmscale = 0;
   else
     pwmscale = div_f(to_fixed(cfg->pwmmax - cfg->pwmmin), to_fixed(100) );
-  printf("ofs: %d, scale: %d\n", pwmofs, pwmscale);
+  printf("ofs: %lu, scale: %lu\n", pwmofs, pwmscale);
   actpos_x = actpos_y = actpos_z = actpos_e = 0;
   st_wake_up();
   trapezoid_tick_cycle_counter = 0;
@@ -190,6 +191,8 @@ void st_wake_up()
   {
     running = 1;
     set_step_timer(2000);
+    exhaust = 1; // turn air assist/exhaust on
+    exhaust_timer.detach(); // cancel any pending timer
   //  printf("wake_up()..\n");
   }
 }
@@ -198,11 +201,14 @@ void st_wake_up()
 // (some delay might have to be implemented). Currently no motor switchoff is done.
 static void st_go_idle()
 {
+  extern GlobalConfig *cfg;
   timer.detach();
   running = 0;
   clear_all_step_pins();
   *laser = LASEROFF;
   pwm = cfg->pwmmax / 100.0;  // set pwm to max;
+  exhaust_timer.attach(&exhaust_off, cfg->exhaust_offdelay); 
+	// when job completes turn off air assist/exhaust after
 //  printf("idle()..\n");
 }
 
@@ -270,6 +276,7 @@ static inline void trapezoid_generator_reset()
 // Set the step timer. Note: this starts the ticker at an interval of "cycles"
 static inline void set_step_timer (uint32_t cycles)
 {
+   extern GlobalConfig *cfg;
    volatile static double p;
    timer.attach_us(&st_interrupt,cycles);
    // p = to_double(pwmofs + mul_f( pwmscale, ((power>>6) * c_min) / ((10000>>6)*cycles) ) );
@@ -468,3 +475,8 @@ void st_synchronize()
   while(plan_get_current_block()) { sleep_mode(); }
 }
 
+void exhaust_off()
+{
+    exhaust = 0;
+    exhaust_timer.detach();
+}
