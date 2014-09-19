@@ -45,17 +45,17 @@ x.invert 0                        ; Invert signal polarity for step signal [1/0]
 
 ; Now for the Y-axis:
 y.pol 1                           ; home/limit sensor polarity [1/0]
-y.scale 158516                   ; axis scaling [steps/meter]
+y.scale 158516                    ; axis scaling [steps/meter]
                                   ; use negative number to invert direction [1/0]
 y.homedir 1                       ; state of the direction signal when homing
 y.home 260000        	          ; home positions [um]
 y.min 0   	                  ; minimal position [um]
 y.max 260000                      ; maximum position [um]
-y.rest 0                          ; rest positionson [um] 
+y.rest 260000                     ; rest positionson [um] 
 y.speed 1000                      ; maximum speed [mm/sec]
 y.invert 0                        ; Invert signal polarity for step signal [1/0]
 
-; Z-axis not 
+; Z-axis not used
 ; z.min 0
 ; z.max 200000
 ; z.home 100000
