@@ -143,7 +143,11 @@ GlobalConfig::GlobalConfig(const std::string& filename)
     cfg.Value("y.min", &ymin, 0); 
     cfg.Value("z.min", &zmin, 0);
     cfg.Value("e.min", &emin, 0); 
-        
+    
+    // jogging direction
+    cfg.Value("x.invertJogging", &xInvertJogging, 0 );
+    cfg.Value("y.invertJogging", &yInvertJogging, 0 );
+
     // motion settings: enable output state    
     cfg.Value("motion.homespeed", &homespeed, 10); // speed during homing [mm/sec]
     cfg.Value("motion.zhomespeed", &zhomespeed, 10); // z-axis speed during homing [mm/sec]
